@@ -50,6 +50,9 @@ func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request) {
 		fmt.Printf("error (handleCreate): %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
+	if len(todo.Todo) < 1 {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+	}
 	todo.Id = uuid.New()
 	todo.CreatedDate = time.Now()
 	todo.UpdateDate = time.Now()
@@ -86,12 +89,7 @@ func (s *TodoService) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	todo.Done = sentTodo.Done
 	todo.UpdateDate = time.Now()
 
-	updatedTodo := s.todoRepository.update(*todo)
-	if updatedTodo == nil {
-		fmt.Printf("error (handleUpdate):  %s\n", "Cannot update todo")
-		http.Error(w, "Cannot update todo", http.StatusNotFound)
-		return
-	}
+	s.todoRepository.update(*todo)
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -106,10 +104,6 @@ func (s *TodoService) handleDelete(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
-	if isDeleted := s.todoRepository.delete(id); isDeleted {
-		w.WriteHeader(http.StatusOK)
-	} else {
-		w.WriteHeader(http.StatusNotFound)
-	}
-
+	s.todoRepository.delete(id)
+	w.WriteHeader(http.StatusOK)
 }
