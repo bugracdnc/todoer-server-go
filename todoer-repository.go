@@ -1,56 +1,47 @@
 package main
 
 import (
-	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 )
 
 type TodoRepository struct {
-	todo []Todo
+	todos []Todo
+	DB    DBOperations
 }
 
 func (r *TodoRepository) getAll() *[]Todo {
-	return &r.todo
+	fetchedTodos, err := r.DB.getAllFromDb()
+	if err != nil {
+		log.Fatalf("Failed to get all from database: %v", err)
+	}
+	r.todos = fetchedTodos
+	return &r.todos
 }
 
 func (r *TodoRepository) getById(id uuid.UUID) *Todo {
-	for _, item := range r.todo {
-		if id == item.Id {
-			return &item
-		}
+	todo, err := r.DB.getByIdFromDb(id)
+	if err != nil {
+		log.Fatalf("Failed to get by id from database: %v", err)
 	}
-	return nil
+	return todo
 }
 
-func (r *TodoRepository) save(todoToSave Todo) *Todo {
-	r.todo = append(r.todo, todoToSave)
-	return r.getById(todoToSave.Id)
+func (r *TodoRepository) save(todoToSave Todo) {
+	if err := r.DB.saveToDb(todoToSave); err != nil {
+		log.Fatalf("Failed to save to database: %v", err)
+	}
 }
 
-func (r *TodoRepository) update(todoToSave Todo) *Todo {
-	todoFetched := r.getById(todoToSave.Id)
-	fmt.Println(todoToSave.Done)
-	todoFetched.Done = todoToSave.Done
-	todoFetched.Todo = todoToSave.Todo
-	todoFetched.UpdateDate = todoToSave.UpdateDate
-	for index, todo := range r.todo {
-		if todo.Id == todoToSave.Id {
-			r.todo[index] = todoToSave
-			return &r.todo[index]
-		}
+func (r *TodoRepository) update(todo Todo) {
+	if err := r.DB.updateDoneInDb(todo); err != nil {
+		log.Fatalf("Failed to update database: %v", err)
 	}
-	return nil
 }
 
-func (r *TodoRepository) delete(id uuid.UUID) bool {
-	deleted := false
-	for index, todo := range r.todo {
-		if todo.Id == id {
-			r.todo = append(r.todo[:index], r.todo[index+1:]...)
-			deleted = true
-			break
-		}
+func (r *TodoRepository) delete(id uuid.UUID) {
+	if err := r.DB.deactivateInDb(id); err != nil {
+		log.Fatalf("Failed to update database: %v", err)
 	}
-	return deleted
 }

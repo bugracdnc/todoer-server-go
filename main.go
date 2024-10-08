@@ -1,13 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
+	"log"
 	"net/http"
-	"time"
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
-	"github.com/google/uuid"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file" // Import the file source driver
+	_ "github.com/lib/pq"                                // PostgreSQL driver
 )
 
 func print_logo() {
@@ -33,16 +37,39 @@ func main() {
 
 	print_logo()
 
+	databaseSource := "postgres://bugra:123789bugra@localhost:5432/todoerdb?sslmode=disable"
+
+	db, err := sql.Open("postgres", databaseSource)
+	if err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		log.Fatalf("Could not start SQL driver: %v", err)
+	}
+
+	m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
+	if err != nil {
+		log.Fatalf("Could not start migration: %v", err)
+	}
+
+	err = m.Up()
+	if err != nil && err != migrate.ErrNoChange {
+		log.Fatalf("Migration failed: %v", err)
+	}
+
 	basePath := "/api/v1/todoer"
 	port := ":8654"
 
-	id, _ := uuid.NewUUID()
-	todoRepository := TodoRepository{todo: []Todo{{Id: id, Todo: "Connect to database", Done: false, CreatedDate: time.Now(), UpdateDate: time.Now()}}}
+	todoRepository := TodoRepository{todos: []Todo{}, DB: DBOperations{DB: db}}
 	todoService := TodoService{todoRepository: todoRepository}
 	todoController := TodoController{todoService: todoService}
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	r.Get(basePath+"/login", generateToken)
 
 	r.Get(basePath, todoController.getHandler)
 	r.Post(basePath, todoController.createHandler)
