@@ -8,13 +8,15 @@ import (
 	_ "github.com/lib/pq"
 )
 
+var getBaseSelectString = "SELECT todos.id, todo, done, createdDate, updateDate, user_id FROM todos FULL JOIN users ON todos.user_id=users.id"
+
 type DBOperations struct {
 	DB *sql.DB
 }
 
 func (d *DBOperations) saveToDb(todo Todo) error {
-	_, err := d.DB.Exec("INSERT INTO todos (todo, done, createdDate, updateDate, active) VALUES ($1, $2, $3, $4, true);",
-		todo.Todo, todo.Done, todo.CreatedDate, todo.UpdateDate)
+	_, err := d.DB.Exec("INSERT INTO todos (todo, done, active, user_id) VALUES ($1, $2, true, $3);",
+		todo.Todo, todo.Done, todo.UserId)
 	return err
 }
 
@@ -29,7 +31,7 @@ func (d *DBOperations) deactivateInDb(id uuid.UUID) error {
 }
 
 func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
-	rows, err := d.DB.Query("SELECT id, todo, done, createdDate, updateDate FROM todos FULL JOIN users ON todos.user_id=users.id WHERE id='$1' AND active=true;", id)
+	rows, err := d.DB.Query(getBaseSelectString+" WHERE id='$1' AND active=true;", id)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +39,7 @@ func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
 
 	var todo Todo
 	for rows.Next() {
-		if err := rows.Scan(&todo.Id, &todo.Todo, &todo.Done, &todo.CreatedDate, &todo.UpdateDate); err != nil {
+		if err := rows.Scan(&todo.Id, &todo.Todo, &todo.Done, &todo.CreatedDate, &todo.UpdateDate, &todo.UserId); err != nil {
 			return nil, err
 		}
 	}
@@ -45,7 +47,7 @@ func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
 }
 
 func (d *DBOperations) getAllFromDb() ([]Todo, error) {
-	rows, err := d.DB.Query("SELECT todos.id, todo, done, createdDate, updateDate FROM todos FULL JOIN users ON todos.user_id=users.id WHERE todos.active=$1 AND users.active=$1;", true)
+	rows, err := d.DB.Query(getBaseSelectString+" WHERE todos.active=$1 AND users.active=$1;", true)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +56,7 @@ func (d *DBOperations) getAllFromDb() ([]Todo, error) {
 	var todos []Todo
 	for rows.Next() {
 		var todo Todo
-		if err := rows.Scan(&todo.Id, &todo.Todo, &todo.Done, &todo.CreatedDate, &todo.UpdateDate); err != nil {
+		if err := rows.Scan(&todo.Id, &todo.Todo, &todo.Done, &todo.CreatedDate, &todo.UpdateDate, &todo.UserId); err != nil {
 			return nil, err
 		}
 		todos = append(todos, todo)
