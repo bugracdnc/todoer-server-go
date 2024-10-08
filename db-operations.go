@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/google/uuid"
 	_ "github.com/lib/pq"
@@ -28,7 +29,7 @@ func (d *DBOperations) deactivateInDb(id uuid.UUID) error {
 }
 
 func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
-	rows, err := d.DB.Query("SELECT * FROM todos WHERE id='$1';", id)
+	rows, err := d.DB.Query("SELECT id, todo, done, createdDate, updateDate FROM todos FULL JOIN users ON todos.user_id=users.id WHERE id='$1' AND active=true;", id)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +45,7 @@ func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
 }
 
 func (d *DBOperations) getAllFromDb() ([]Todo, error) {
-	rows, err := d.DB.Query("SELECT id, todo, done, createdDate, updateDate FROM todos;")
+	rows, err := d.DB.Query("SELECT todos.id, todo, done, createdDate, updateDate FROM todos FULL JOIN users ON todos.user_id=users.id WHERE todos.active=$1 AND users.active=$1;", true)
 	if err != nil {
 		return nil, err
 	}
@@ -59,4 +60,36 @@ func (d *DBOperations) getAllFromDb() ([]Todo, error) {
 		todos = append(todos, todo)
 	}
 	return todos, nil
+}
+
+func (d *DBOperations) getUsersFromDb() ([]User, error) {
+	rows, err := d.DB.Query("SELECT id, token, name FROM users WHERE active=$1;", true)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		if err := rows.Scan(&user.Id, &user.Token, &user.Name); err != nil {
+			fmt.Println(err.Error())
+			return nil, err
+		}
+		users = append(users, user)
+	}
+	return users, nil
+}
+
+func (d *DBOperations) saveUserToDb(user User) error {
+	_, err := d.DB.Exec("INSERT INTO users (token, name, active) VALUES ($1, $2, $3);",
+		user.Token, user.Name, true)
+	return err
+}
+
+func (d *DBOperations) updateUserInDb(user User) error {
+	_, err := d.DB.Exec("UPDATE users SET name = '$2' WHERE token='$1';",
+		user.Token, user.Name)
+	return err
 }
