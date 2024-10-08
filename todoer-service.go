@@ -43,8 +43,8 @@ func (s *TodoService) handleGetById(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request) {
-	var todo Todo
+func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request, user *User) {
+	var todo = Todo{UserId: user.Id}
 	err := json.NewDecoder(r.Body).Decode(&todo)
 	if err != nil {
 		fmt.Printf("error (handleCreate): %s\n", err.Error())
@@ -53,13 +53,9 @@ func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if len(todo.Todo) < 1 {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 	}
-	todo.Id = uuid.New()
-	todo.CreatedDate = time.Now()
-	todo.UpdateDate = time.Now()
 
 	s.todoRepository.save(todo)
-	w.Header().Set("Content-Type", "text/html")
-	w.Write([]byte(todo.Id.String()))
+	w.WriteHeader(http.StatusCreated)
 }
 
 func (s *TodoService) handleUpdate(w http.ResponseWriter, r *http.Request) {

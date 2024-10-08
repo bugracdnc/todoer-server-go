@@ -4,6 +4,6 @@ CREATE TABLE
         todo text,
         done boolean,
         createdDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updateDate TIMESTAMP,
+        updateDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         active boolean
     );

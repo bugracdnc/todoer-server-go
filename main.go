@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -55,25 +56,26 @@ func generateTokenAndSaveUser(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func validateTokenFromUser(r *http.Request) bool {
+func validateTokenFromUser(r *http.Request) (*User, error) {
 	users, err := dbOp.getUsersFromDb()
 	if err != nil {
 		log.Fatalf("Failed to get users from db: %v", err)
-		return false
+		return nil, err
 	}
 	bearerToken := r.Header.Get("Authorization")
 	if len(bearerToken) < ((tokenLength * 2) + bearerLength + 1) { //+1 is for the space
 		fmt.Println("Bad Bearer Token")
-		return false
+		return nil, errors.New("bad Bearer token")
 	}
 	reqToken := strings.Split(bearerToken, " ")[1]
-	for _, user := range users {
+	var user User
+	for _, user = range users {
 		if user.Token == reqToken {
-			return true
+			return &user, nil
 		}
 	}
 	fmt.Println("Failed to authenticate with all tokens in db")
-	return false
+	return nil, err
 }
 
 func randomHex(n int) (string, error) {
