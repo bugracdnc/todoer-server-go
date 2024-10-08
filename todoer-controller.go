@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 )
 
@@ -9,25 +8,46 @@ type TodoController struct {
 	todoService TodoService
 }
 
+func handleUnAuthorized(w http.ResponseWriter) {
+	http.Error(w, "Unauthorized", http.StatusUnauthorized)
+}
+
 func (t *TodoController) getHandler(w http.ResponseWriter, r *http.Request) {
-	t.todoService.handleGet(w)
+	if validateToken(r) {
+		t.todoService.handleGet(w)
+	} else {
+		handleUnAuthorized(w)
+	}
 }
 
 func (t *TodoController) getByIdHandler(w http.ResponseWriter, r *http.Request) {
-
-	t.todoService.handleGetById(w, r)
+	if validateToken(r) {
+		t.todoService.handleGetById(w, r)
+	} else {
+		handleUnAuthorized(w)
+	}
 }
 
 func (t *TodoController) createHandler(w http.ResponseWriter, r *http.Request) {
-
-	t.todoService.handleCreate(w, r)
+	if validateToken(r) {
+		t.todoService.handleCreate(w, r)
+	} else {
+		handleUnAuthorized(w)
+	}
 }
 
 func (t *TodoController) updateHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("updateHandler invoked")
-	t.todoService.handleUpdate(w, r)
+	if validateToken(r) {
+		t.todoService.handleUpdate(w, r)
+	} else {
+		handleUnAuthorized(w)
+	}
 }
 
 func (t *TodoController) deleteHandler(w http.ResponseWriter, r *http.Request) {
-	t.todoService.handleDelete(w, r)
+	if validateToken(r) {
+		t.todoService.handleDelete(w, r)
+	} else {
+		handleUnAuthorized(w)
+	}
 }
