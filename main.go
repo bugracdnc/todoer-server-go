@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 
 	"crypto/rand"
 	"encoding/hex"
@@ -20,8 +21,8 @@ import (
 	_ "github.com/lib/pq"                                // PostgreSQL driver
 )
 
-func print_logo() {
-	var logo []string = make([]string, 7)
+func printLogo() {
+	var logo = make([]string, 7)
 
 	logo[0] = "░▒▓████████▓▒░▒▓██████▓▒░░▒▓███████▓▒░ ░▒▓██████▓▒░░▒▓████████▓▒░▒▓███████▓▒░  "
 	logo[1] = "   ░▒▓█▓▒░  ░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░░▒▓█▓▒░▒▓█▓▒░      ░▒▓█▓▒░░▒▓█▓▒░ "
@@ -44,10 +45,13 @@ var dbOp DBOperations
 var tokenLength = 4
 var bearerLength = 6
 
-func generateTokenAndSaveUser(w http.ResponseWriter, r *http.Request) {
+func generateTokenAndSaveUser(w http.ResponseWriter, _ *http.Request) {
 	token, _ := randomHex(tokenLength)
 	user := User{Token: token, Name: ""}
-	dbOp.saveUserToDb(user)
+	err := dbOp.saveUserToDb(user)
+	if err != nil {
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
 	encodeErr := json.NewEncoder(w).Encode(token)
 	if encodeErr != nil {
@@ -86,9 +90,16 @@ func randomHex(n int) (string, error) {
 	return hex.EncodeToString(bytes), nil
 }
 
+var basePath = "/api/v1/todoer"
+var port = os.Getenv("PORT")
+
 func main() {
 
-	print_logo()
+	if port == "" {
+		port = "8654"
+	}
+
+	printLogo()
 
 	databaseSource := "postgres://bugra:123789bugra@localhost:5432/todoerdb?sslmode=disable"
 
@@ -109,12 +120,9 @@ func main() {
 	}
 
 	err = m.Up()
-	if err != nil && err != migrate.ErrNoChange {
+	if err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		log.Fatalf("Migration failed: %v", err)
 	}
-
-	basePath := "/api/v1/todoer"
-	port := ":8654"
 
 	todoRepository := TodoRepository{todos: []Todo{}, DB: dbOp}
 	todoService := TodoService{todoRepository: todoRepository}
@@ -129,8 +137,11 @@ func main() {
 	r.Post(basePath, todoController.createHandler)
 	r.Get(basePath+"/{id}", todoController.getByIdHandler)
 	r.Put(basePath+"/{id}", todoController.updateHandler)
-	r.Delete(basePath+"/id", todoController.deleteHandler)
+	r.Delete(basePath+"/{id}", todoController.deleteHandler)
 
-	fmt.Printf("Server listening on http://127.0.0.1%s%s\n", port, basePath)
-	http.ListenAndServe(port, r)
+	fmt.Printf("Server listening on http://127.0.0.1:%s%s\n", port, basePath)
+	err = http.ListenAndServe(":"+port, r)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/google/uuid"
@@ -29,6 +30,7 @@ func (r *TodoRepository) getById(id uuid.UUID) *Todo {
 }
 
 func (r *TodoRepository) save(todoToSave Todo) {
+	fmt.Println(todoToSave.Todo)
 	if err := r.DB.saveToDb(todoToSave); err != nil {
 		log.Fatalf("Failed to save to database: %v", err)
 	}

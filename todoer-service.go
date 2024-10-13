@@ -44,8 +44,9 @@ func (s *TodoService) handleGetById(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request, user *User) {
-	var todo = Todo{UserId: user.Id}
+	var todo = Todo{}
 	err := json.NewDecoder(r.Body).Decode(&todo)
+	todo.UserId = user.Id
 	if err != nil {
 		fmt.Printf("error (handleCreate): %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -59,9 +60,7 @@ func (s *TodoService) handleCreate(w http.ResponseWriter, r *http.Request, user 
 }
 
 func (s *TodoService) handleUpdate(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("handleUpdate service invoked")
 	id, err := getIdFromQuery(r)
-	fmt.Println(id)
 	if err != nil {
 		fmt.Printf("error (handleUpdate):  %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)

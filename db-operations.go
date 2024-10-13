@@ -15,23 +15,24 @@ type DBOperations struct {
 }
 
 func (d *DBOperations) saveToDb(todo Todo) error {
+	fmt.Println(todo.Todo)
 	_, err := d.DB.Exec("INSERT INTO todos (todo, done, active, user_id) VALUES ($1, $2, true, $3);",
 		todo.Todo, todo.Done, todo.UserId)
 	return err
 }
 
 func (d *DBOperations) updateDoneInDb(todo Todo) error {
-	_, err := d.DB.Exec("UPDATE todos SET done = '$1' WHERE id = '$2';", todo.Done, todo.Id)
+	_, err := d.DB.Exec("UPDATE todos SET done = $1 WHERE todos.id = $2;", todo.Done, todo.Id)
 	return err
 }
 
 func (d *DBOperations) deactivateInDb(id uuid.UUID) error {
-	_, err := d.DB.Exec("UPDATE todos SET active = false WHERE id = '$1';", id)
+	_, err := d.DB.Exec("UPDATE todos SET active = false WHERE id = $1;", id)
 	return err
 }
 
 func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
-	rows, err := d.DB.Query(getBaseSelectString+" WHERE id='$1' AND active=true;", id)
+	rows, err := d.DB.Query(getBaseSelectString+" WHERE todos.id=$1 AND todos.active=true AND users.active=true;", id)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (d *DBOperations) saveUserToDb(user User) error {
 }
 
 func (d *DBOperations) updateUserInDb(user User) error {
-	_, err := d.DB.Exec("UPDATE users SET name = '$2' WHERE token='$1';",
+	_, err := d.DB.Exec("UPDATE users SET name = $2 WHERE token=$1;",
 		user.Token, user.Name)
 	return err
 }
