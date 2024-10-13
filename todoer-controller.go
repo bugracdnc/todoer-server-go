@@ -13,8 +13,8 @@ func handleUnAuthorized(w http.ResponseWriter) {
 }
 
 func (t *TodoController) getHandler(w http.ResponseWriter, r *http.Request) {
-	if _, err := validateTokenFromUser(r); err == nil {
-		t.todoService.handleGet(w)
+	if user, err := validateTokenFromUser(r); err == nil {
+		t.todoService.handleGet(w, &user.Id)
 	} else {
 		handleUnAuthorized(w)
 	}

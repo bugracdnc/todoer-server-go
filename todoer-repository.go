@@ -12,8 +12,8 @@ type TodoRepository struct {
 	DB    DBOperations
 }
 
-func (r *TodoRepository) getAll() *[]Todo {
-	fetchedTodos, err := r.DB.getAllFromDb()
+func (r *TodoRepository) getAll(userId *uuid.UUID) *[]Todo {
+	fetchedTodos, err := r.DB.getAllFromDb(userId)
 	if err != nil {
 		log.Fatalf("Failed to get all from database: %v", err)
 	}

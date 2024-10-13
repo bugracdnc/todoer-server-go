@@ -47,8 +47,8 @@ func (d *DBOperations) getByIdFromDb(id uuid.UUID) (*Todo, error) {
 	return &todo, nil
 }
 
-func (d *DBOperations) getAllFromDb() ([]Todo, error) {
-	rows, err := d.DB.Query(getBaseSelectString+" WHERE todos.active=$1 AND users.active=$1;", true)
+func (d *DBOperations) getAllFromDb(userId *uuid.UUID) ([]Todo, error) {
+	rows, err := d.DB.Query(getBaseSelectString+" WHERE todos.active=$1 AND users.active=$1 AND todos.user_id=$2;", true, *userId)
 	if err != nil {
 		return nil, err
 	}

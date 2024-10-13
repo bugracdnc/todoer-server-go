@@ -20,9 +20,9 @@ func getIdFromQuery(r *http.Request) (uuid.UUID, error) {
 
 }
 
-func (s *TodoService) handleGet(w http.ResponseWriter) {
+func (s *TodoService) handleGet(w http.ResponseWriter, userId *uuid.UUID) {
 	w.Header().Set("Content-Type", "application/json")
-	err := json.NewEncoder(w).Encode(*s.todoRepository.getAll())
+	err := json.NewEncoder(w).Encode(*s.todoRepository.getAll(userId))
 	if err != nil {
 		fmt.Printf("error (handleGet): %s\n", err.Error())
 		http.Error(w, err.Error(), http.StatusNotFound)
